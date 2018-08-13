@@ -5,10 +5,10 @@
             window.onload = function() {
                 canvas = document.getElementById("gc");
                 context = canvas.getContext("2d");
-                game = new SpaceInvaders(context);
+                game = new SpaceInvaders(context, canvas.width, canvas.height);
                 console.info("Loading assets");
                 game.load()
-                .then(() =>{
+                .then(() => {
                     console.info("Assets loaded");
                     game.start();
                 })
@@ -19,6 +19,6 @@
         </script>
     </head>
     <body>
-        <canvas id="gc" width="400" height="400"></canvas>
+        <canvas id="gc" width="600" height="600"></canvas>
     </body>
 </html>
