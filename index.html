@@ -6,15 +6,7 @@
                 canvas = document.getElementById("gc");
                 context = canvas.getContext("2d");
                 game = new SpaceInvaders(context, canvas.width, canvas.height);
-                console.info("Loading assets");
-                game.load()
-                .then(() => {
-                    console.info("Assets loaded");
-                    game.start();
-                })
-                .catch((reason) => {
-                    console.error(`Error loading assets: ${reason}`);
-                });
+                game.load().then(() => game.start());
             }
         </script>
     </head>

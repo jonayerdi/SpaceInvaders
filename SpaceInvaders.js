@@ -3,7 +3,7 @@ function LoadImagePromise(src) {
     return new Promise((resolve, reject) => {
         let img = new Image();
         img.onload = () => resolve(img);
-        img.onerror = () => reject("Could not load " + src);
+        img.onerror = () => reject(`Could not load ${src}`);
         img.src = src;
     })
 }
@@ -43,13 +43,13 @@ class SpaceInvaders {
                 Promise.all(this.imageData.map(img => LoadImagePromise(img.src))).then((imgArray) => {
                     this.images = (() => {
                         let result = new Map();
-                        this.imageData.forEach((element, index) => {
+                        for (let index = 0; index < imgArray.length; index++) {
                             result.set(this.imageData[index].name, {
                                 img: imgArray[index],
                                 width: this.imageData[index].width,
                                 height: this.imageData[index].height
                             });
-                        });
+                        }
                         return result;
                     })();
                     resolve();
@@ -69,14 +69,14 @@ class SpaceInvaders {
         };
         this.shots = [];
         // Listeners + Interval
-        document.addEventListener("keyup", this.keyupFunction);
-        document.addEventListener("keydown", this.keydownFunction);
+        document.addEventListener('keyup', this.keyupFunction);
+        document.addEventListener('keydown', this.keydownFunction);
         this.intervalID = setInterval(() => this.gameLoop(), 1000/this.fps);
     }
     stop() {
         clearInterval(this.intervalID);
-        document.removeEventListener("keydown", this.keydownFunction);
-        document.removeEventListener("keyup", this.keyupFunction);
+        document.removeEventListener('keydown', this.keydownFunction);
+        document.removeEventListener('keyup', this.keyupFunction);
     }
     drawAsset(name, x, y) {
         let asset = this.images.get(name);
@@ -84,7 +84,7 @@ class SpaceInvaders {
     }
     gameLoop() {
         // Draw
-        this.context.fillStyle = "black";
+        this.context.fillStyle = 'black';
         this.context.fillRect(0, 0, this.width, this.height);
         this.drawAsset('player', this.player.x, this.player.y);
         // Player movement
