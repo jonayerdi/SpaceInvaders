@@ -28,7 +28,8 @@ class SpaceInvaders {
         this.context = context;
         this.keyupFunction = (evt) => this.onKeyup(evt);
         this.keydownFunction = (evt) => this.onKeydown(evt);
-        // Canvas scaling
+        // Context
+        this.context.font = "80px Arial";
         this.context.scale(width/this.width, height/this.height)
     }
     load() {
@@ -97,11 +98,12 @@ class SpaceInvaders {
         return invaders;
     }
     init() {
-        this.controls = {left: false, right: false, shot: false};
+        this.controls = {pause: false, left: false, right: false, shot: false};
         this.player = {
             x: this.width/2 - this.images.get('player').width/2,
             y: this.downlimit - this.images.get('player').height,
             speed: 0,
+            score: 0,
             lives: this.maxlives,
             health: this.maxhealth
         };
@@ -109,6 +111,7 @@ class SpaceInvaders {
         this.invaderspeed = 1;
         this.shots = [];
         this.frame = 0;
+        this.paused = false;
     }
     resume() {
         document.addEventListener('keyup', this.keyupFunction);
@@ -147,50 +150,63 @@ class SpaceInvaders {
         return result;
     }
     gameLoop() {
-        // Background
-        this.context.fillStyle = 'black';
-        this.context.fillRect(0, 0, this.width, this.height);
-        // Player
-        this.drawAsset('player', this.player.x, this.player.y);
-        let nextPosition = this.player.x + this.player.speed
-        if(nextPosition > this.leftlimit && nextPosition + this.images.get('player').width < this.rightlimit) {
-            this.player.x = nextPosition;
-        }
-        // Invaders
-        this.invaders.forEach((invader) => {
-            this.drawAsset(invader.type, invader.x, invader.y);
-            invader.x += this.invaderspeed;
-        });
-        let changedDirection = true;
-        if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
-            this.invaderspeed = -(Math.abs(this.invaderspeed) + .1);
-        } else if(this.leftmostInvader().x <= this.leftlimit) {
-            this.invaderspeed = (Math.abs(this.invaderspeed) + .1);
+        if(this.paused) {
+            const pausex = 340;
+            const pausey = this.height/2;
+            this.context.fillStyle = 'black';
+            this.context.fillText('PAUSED', pausex - 5, pausey - 5);
+            this.context.fillText('PAUSED', pausex - 5, pausey + 5);
+            this.context.fillText('PAUSED', pausex + 5, pausey - 5);
+            this.context.fillText('PAUSED', pausex + 5, pausey + 5);
+            this.context.fillStyle = 'white';
+            this.context.fillText('PAUSED', pausex, pausey);
         } else {
-            changedDirection = false;
-        }
-        if(changedDirection) {
+            // Background
+            this.context.fillStyle = 'black';
+            this.context.fillRect(0, 0, this.width, this.height);
+            // Player
+            this.drawAsset('player', this.player.x, this.player.y);
+            let nextPosition = this.player.x + this.player.speed
+            if(nextPosition > this.leftlimit && nextPosition + this.images.get('player').width < this.rightlimit) {
+                this.player.x = nextPosition;
+            }
+            // Invaders
             this.invaders.forEach((invader) => {
-                invader.y += this.invaderdown;
+                this.drawAsset(invader.type, invader.x, invader.y);
+                invader.x += this.invaderspeed;
             });
+            let changedDirection = true;
+            if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
+                this.invaderspeed = -(Math.abs(this.invaderspeed) + .1);
+            } else if(this.leftmostInvader().x <= this.leftlimit) {
+                this.invaderspeed = (Math.abs(this.invaderspeed) + .1);
+            } else {
+                changedDirection = false;
+            }
+            if(changedDirection) {
+                this.invaders.forEach((invader) => {
+                    invader.y += this.invaderdown;
+                });
+            }
+            // Player shots
+            this.shots.forEach((element) => {
+                element.y -= this.shotspeed;
+            });
+            while(this.shots.length > 0 && this.shots[0].y <= this.uplimit) {
+                this.shots.shift();
+            }
+            this.shots.forEach((element) => {
+                this.drawAsset('shot', element.x - 2, element.y - 8);
+            });
+            // Increment frame counter
+            this.frame++;
         }
-        // Player shots
-        this.shots.forEach((element) => {
-            element.y -= this.shotspeed;
-        });
-        while(this.shots.length > 0 && this.shots[0].y <= this.uplimit) {
-            this.shots.shift();
-        }
-        this.shots.forEach((element) => {
-            this.drawAsset('shot', element.x - 2, element.y - 8);
-        });
-        // Increment frame counter
-        this.frame++;
     }
     onKeyup(evt) {
         switch(evt.keyCode) {
             case 13:
                 // Return
+                this.controls.pause = false;
                 break;
             case 32:
                 // Space
@@ -226,10 +242,14 @@ class SpaceInvaders {
         switch(evt.keyCode) {
             case 13:
                 // Return
+                if(!this.controls.pause) {
+                    this.paused = !this.paused;
+                    this.controls.pause = true;
+                }
                 break;
             case 32:
                 // Space
-                if(!this.controls.shot && this.shots.length < this.shotlimit) {
+                if(!this.paused && !this.controls.shot && this.shots.length < this.shotlimit) {
                     this.shots.push({
                         x: this.player.x + this.images.get('player').width/2,
                         y: this.player.y - this.images.get('shot').height
