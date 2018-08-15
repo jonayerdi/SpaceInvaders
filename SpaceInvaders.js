@@ -29,7 +29,7 @@ class SpaceInvaders {
         this.keyupFunction = (evt) => this.onKeyup(evt);
         this.keydownFunction = (evt) => this.onKeydown(evt);
         // Context
-        this.context.font = "80px Arial";
+        this.context.font = '80px Arial';
         this.context.scale(width/this.width, height/this.height)
     }
     load() {
