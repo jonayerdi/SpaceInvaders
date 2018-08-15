@@ -197,7 +197,7 @@ class SpaceInvaders {
                 this.shots.shift();
             }
             this.shots.forEach((element) => {
-                this.drawAsset('shot', element.x - 2, element.y - 8);
+                this.drawAsset('shot', element.x, element.y);
             });
             // Increment frame counter
             this.frame++;
@@ -252,8 +252,8 @@ class SpaceInvaders {
                 // Space
                 if(!this.paused && !this.controls.shot && this.shots.length < this.shotlimit) {
                     this.shots.push({
-                        x: this.player.x + this.images.get('player').width/2,
-                        y: this.player.y - this.images.get('shot').height
+                        x: this.player.x + this.images.get('player').width/2 - this.images.get('shot').width/2,
+                        y: this.player.y - this.images.get('shot').height*.8
                     });
                     this.controls.shot = true;
                 }
