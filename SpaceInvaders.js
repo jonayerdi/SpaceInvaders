@@ -22,6 +22,7 @@ class SpaceInvaders {
             {name: 'invader1', src: 'assets/invader1.png', width: 80, height: 50},
             {name: 'invader2', src: 'assets/invader2.png', width: 80, height: 70},
             {name: 'invader3', src: 'assets/invader3.png', width: 80, height: 60},
+            {name: 'ufo', src: 'assets/ufo.png', width: 90, height: 40},
         ];
         // Initialization
         this.context = context;
