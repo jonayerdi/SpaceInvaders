@@ -1,7 +1,8 @@
 
 class SpaceInvaders {
-    constructor(context, width, height) {
+    constructor(context, width, height, eventsrc=document) {
         // Constants
+        this.eventsrc = eventsrc ? eventsrc : document;
         this.width = 1000;
         this.height = 1000;
         this.maxlives = 3;
@@ -112,20 +113,34 @@ class SpaceInvaders {
         this.shots = [];
         this.frame = 0;
         this.paused = false;
+        this.resumed = false;
+        this.eventsrc.addEventListener('focus', ()=>{if(!this.resumed){this.resume()}});
+        this.eventsrc.addEventListener('blur', ()=>{if(this.resumed){this.pause()}});
     }
     resume() {
-        document.addEventListener('keyup', this.keyupFunction);
-        document.addEventListener('keydown', this.keydownFunction);
+        this.resumed = true;
+        this.eventsrc.addEventListener('keyup', this.keyupFunction);
+        this.eventsrc.addEventListener('keydown', this.keydownFunction);
         this.intervalID = setInterval(() => this.gameLoop(), 1000/this.fps);
     }
     pause() {
+        this.resumed = false;
         clearInterval(this.intervalID);
-        document.removeEventListener('keydown', this.keydownFunction);
-        document.removeEventListener('keyup', this.keyupFunction);
+        this.eventsrc.removeEventListener('keydown', this.keydownFunction);
+        this.eventsrc.removeEventListener('keyup', this.keyupFunction);
     }
     start() {
         this.init();
-        this.resume();
+        if(this.eventsrc === document) {
+            this.resume();
+        } else {
+            this.gameLoop(); // Render first frame of the game
+        }
+    }
+    focus() {
+        if(this.eventsrc.focus) {
+            this.eventsrc.focus();
+        }
     }
     drawAsset(name, x, y) {
         let asset = this.images.get(name);

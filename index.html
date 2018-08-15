@@ -5,12 +5,12 @@
             window.onload = function() {
                 canvas = document.getElementById("gc");
                 context = canvas.getContext("2d");
-                game = new SpaceInvaders(context, canvas.width, canvas.height);
-                game.load().then(() => game.start());
+                game = new SpaceInvaders(context, canvas.width, canvas.height, canvas);
+                game.load().then(() => {game.start(); game.focus();});
             }
         </script>
     </head>
     <body>
-        <canvas id="gc" width="600" height="600"></canvas>
+        <canvas id="gc" width="600" height="600" tabindex="1"></canvas>
     </body>
 </html>
