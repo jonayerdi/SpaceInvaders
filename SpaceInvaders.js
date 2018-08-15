@@ -29,7 +29,6 @@ class SpaceInvaders {
         this.keyupFunction = (evt) => this.onKeyup(evt);
         this.keydownFunction = (evt) => this.onKeydown(evt);
         // Context
-        this.context.font = '80px Arial';
         this.context.scale(width/this.width, height/this.height)
     }
     load() {
@@ -46,13 +45,14 @@ class SpaceInvaders {
                 .then((imgArray) => {
                     this.images = (() => {
                         let result = new Map();
-                        for (let index = 0; index < imgArray.length; index++) {
-                            result.set(this.imageData[index].name, {
-                                img: imgArray[index],
-                                width: this.imageData[index].width,
-                                height: this.imageData[index].height
+                        imgArray.forEach((element) => {
+                            let imgData = this.imageData.find((e) => element.src.endsWith(e.src));
+                            result.set(imgData.name, {
+                                img: element,
+                                width: imgData.width,
+                                height: imgData.height
                             });
-                        }
+                        });
                         return result;
                     })();
                     resolve();
@@ -153,6 +153,7 @@ class SpaceInvaders {
         if(this.paused) {
             const pausex = 340;
             const pausey = this.height/2;
+            this.context.font = '80px Arial';
             this.context.fillStyle = 'black';
             this.context.fillText('PAUSED', pausex - 5, pausey - 5);
             this.context.fillText('PAUSED', pausex - 5, pausey + 5);
