@@ -6,7 +6,6 @@ class SpaceInvaders {
         this.width = 1000;
         this.height = 1000;
         this.maxlives = 3;
-        this.maxhealth = 3;
         this.playerspeed = 8;
         this.leftlimit = 20;
         this.rightlimit = 980;
@@ -17,6 +16,7 @@ class SpaceInvaders {
         this.ufospeed = 4;
         this.invaderdown = 8;
         this.fps = 30;
+        this.animationCounterFreq = this.fps;
         this.imageData = [
             {name: 'player', src: 'assets/player.png', width: 90, height: 40},
             {name: 'shot', src: 'assets/shot.png', width: 6, height: 50},
@@ -71,6 +71,8 @@ class SpaceInvaders {
             for(let y = 0; y < 1; y++) {
                 invaders.push({
                     type: 'invader3',
+                    animationCounter: 0,
+                    deathAnimation: 0,
                     points: 3,
                     x: leftmargin + this.images.get('invader3').width*1.3*x,
                     y: topmargin + this.images.get('invader3').height*1.3*y
@@ -79,6 +81,8 @@ class SpaceInvaders {
             for(let y = 0; y < 2; y++) {
                 invaders.push({
                     type: 'invader2',
+                    animationCounter: 0,
+                    deathAnimation: 0,
                     points: 2,
                     x: leftmargin + this.images.get('invader2').width*1.3*x,
                     y: this.images.get('invader3').height*1.3 
@@ -88,6 +92,8 @@ class SpaceInvaders {
             for(let y = 0; y < 2; y++) {
                 invaders.push({
                     type: 'invader1',
+                    animationCounter: 0,
+                    deathAnimation: 0,
                     points: 1,
                     x: leftmargin + this.images.get('invader1').width*1.3*x,
                     y: 2*this.images.get('invader2').height*1.3 
@@ -105,26 +111,25 @@ class SpaceInvaders {
             y: this.downlimit - this.images.get('player').height,
             speed: 0,
             score: 0,
-            lives: this.maxlives,
-            health: this.maxhealth
+            lives: this.maxlives
         };
         this.invaders = this.initialInvaders();
         this.invaderspeed = 1;
         this.shots = [];
         this.frame = 0;
         this.paused = false;
-        this.resumed = false;
-        this.eventsrc.addEventListener('focus', ()=>{if(!this.resumed){this.resume()}});
-        this.eventsrc.addEventListener('blur', ()=>{if(this.resumed){this.pause()}});
+        this.enabled = false;
+        this.eventsrc.addEventListener('focus', ()=>{if(!this.enabled){this.enable()}});
+        this.eventsrc.addEventListener('blur', ()=>{if(this.enabled){this.disable()}});
     }
-    resume() {
-        this.resumed = true;
+    enable() {
+        this.enabled = true;
         this.eventsrc.addEventListener('keyup', this.keyupFunction);
         this.eventsrc.addEventListener('keydown', this.keydownFunction);
         this.intervalID = setInterval(() => this.gameLoop(), 1000/this.fps);
     }
-    pause() {
-        this.resumed = false;
+    disable() {
+        this.enabled = false;
         clearInterval(this.intervalID);
         this.eventsrc.removeEventListener('keydown', this.keydownFunction);
         this.eventsrc.removeEventListener('keyup', this.keyupFunction);
@@ -132,7 +137,7 @@ class SpaceInvaders {
     start() {
         this.init();
         if(this.eventsrc === document) {
-            this.resume();
+            this.enable();
         } else {
             this.gameLoop(); // Render first frame of the game
         }
