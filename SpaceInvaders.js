@@ -1,4 +1,3 @@
-
 class SpaceInvaders {
     constructor(context, width, height, eventsrc=document) {
         // Constants
@@ -14,16 +13,17 @@ class SpaceInvaders {
         this.shotlimit = 3;
         this.shotspeed = 10;
         this.ufospeed = 4;
+        this.invaderspeedincrease = .1;
         this.invaderdown = 8;
         this.fps = 30;
         this.animationCounterFreq = this.fps;
         this.imageData = [
-            {name: 'player', src: 'assets/player.png', width: 90, height: 40},
-            {name: 'shot', src: 'assets/shot.png', width: 6, height: 50},
-            {name: 'invader1', src: 'assets/invader1.png', width: 80, height: 50},
-            {name: 'invader2', src: 'assets/invader2.png', width: 80, height: 70},
-            {name: 'invader3', src: 'assets/invader3.png', width: 80, height: 60},
-            {name: 'ufo', src: 'assets/ufo.png', width: 90, height: 40},
+            {name: 'player', srcs: ['assets/player.png'], width: 90, height: 40},
+            {name: 'shot', srcs: ['assets/shot.png'], width: 6, height: 50},
+            {name: 'invader1', srcs: ['assets/invader1_0.png', 'assets/invader1_1.png'], width: 80, height: 50},
+            {name: 'invader2', srcs: ['assets/invader2_0.png', 'assets/invader2_1.png'], width: 80, height: 70},
+            {name: 'invader3', srcs: ['assets/invader3_0.png', 'assets/invader3_1.png'], width: 80, height: 60},
+            {name: 'ufo', srcs: ['assets/ufo_0.png', 'assets/ufo_1.png'], width: 90, height: 40},
         ];
         // Initialization
         this.context = context;
@@ -37,25 +37,29 @@ class SpaceInvaders {
             if(this.images) {
                 resolve();
             } else {
-                Promise.all(this.imageData.map(image => new Promise((resolve, reject) => {
-                        let img = new Image();
-                        img.onload = () => resolve(img);
-                        img.onerror = () => reject(`Could not load ${image.src}`);
-                        img.src = image.src;
-                })))
-                .then((imgArray) => {
+                Promise.all(this.imageData.map(data => Promise.all(data.srcs.map(src => new Promise((resolve, reject) => {
+                    let img = new Image();
+                    img.onload = () => resolve({name: data.name, img: img});
+                    img.onerror = () => reject(`Could not load ${src}`);
+                    img.src = src;
+                })))))
+                .then((loadedAssets) => {
                     this.images = (() => {
                         let result = new Map();
-                        imgArray.forEach((element) => {
-                            let imgData = this.imageData.find((e) => element.src.endsWith(e.src));
-                            result.set(imgData.name, {
-                                img: element,
-                                width: imgData.width,
-                                height: imgData.height
+                        this.imageData.forEach((element) => {
+                            result.set(element.name, {
+                                imgs: [],
+                                width: element.width,
+                                height: element.height
                             });
                         });
                         return result;
                     })();
+                    loadedAssets.forEach((asset) => {
+                        asset.forEach((image) => {
+                            this.images.get(image.name).imgs.push(image.img);
+                        });
+                    });
                     resolve();
                 })
                 .catch((reason) => reject(reason));
@@ -147,9 +151,9 @@ class SpaceInvaders {
             this.eventsrc.focus();
         }
     }
-    drawAsset(name, x, y) {
+    drawAsset(name, x, y, imageIndex=0) {
         let asset = this.images.get(name);
-        this.context.drawImage(asset.img, x, y, asset.width, asset.height);
+        this.context.drawImage(asset.imgs[imageIndex], x, y, asset.width, asset.height);
     }
     leftmostInvader() {
         let result;
@@ -193,14 +197,17 @@ class SpaceInvaders {
             }
             // Invaders
             this.invaders.forEach((invader) => {
-                this.drawAsset(invader.type, invader.x, invader.y);
+                if(this.frame % this.animationCounterFreq === 0) {
+                    invader.animationCounter = (invader.animationCounter + 1) % 2;
+                }
+                this.drawAsset(invader.type, invader.x, invader.y, invader.animationCounter);
                 invader.x += this.invaderspeed;
             });
             let changedDirection = true;
             if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
-                this.invaderspeed = -(Math.abs(this.invaderspeed) + .1);
+                this.invaderspeed = -(Math.abs(this.invaderspeed) + this.invaderspeedincrease);
             } else if(this.leftmostInvader().x <= this.leftlimit) {
-                this.invaderspeed = (Math.abs(this.invaderspeed) + .1);
+                this.invaderspeed = (Math.abs(this.invaderspeed) + this.invaderspeedincrease);
             } else {
                 changedDirection = false;
             }
