@@ -1,6 +1,6 @@
 class SpaceInvaders {
     constructor(context, width, height, eventsrc=document) {
-        // Constants
+        // Configuration
         this.eventsrc = eventsrc ? eventsrc : document;
         this.width = 1000;
         this.height = 1000;
@@ -16,7 +16,7 @@ class SpaceInvaders {
         this.invaderspeedincrease = .1;
         this.invaderdown = 8;
         this.fps = 30;
-        this.animationCounterFreq = this.fps;
+        this.animationPeriod = this.fps * .6;
         this.imageData = [
             {name: 'player', srcs: ['assets/player.png'], width: 90, height: 40},
             {name: 'shot', srcs: ['assets/shot.png'], width: 6, height: 50},
@@ -75,8 +75,7 @@ class SpaceInvaders {
             for(let y = 0; y < 1; y++) {
                 invaders.push({
                     type: 'invader3',
-                    animationCounter: 0,
-                    deathAnimation: 0,
+                    animationCounter: 1,
                     points: 3,
                     x: leftmargin + this.images.get('invader3').width*1.3*x,
                     y: topmargin + this.images.get('invader3').height*1.3*y
@@ -85,8 +84,7 @@ class SpaceInvaders {
             for(let y = 0; y < 2; y++) {
                 invaders.push({
                     type: 'invader2',
-                    animationCounter: 0,
-                    deathAnimation: 0,
+                    animationCounter: 1,
                     points: 2,
                     x: leftmargin + this.images.get('invader2').width*1.3*x,
                     y: this.images.get('invader3').height*1.3 
@@ -96,8 +94,7 @@ class SpaceInvaders {
             for(let y = 0; y < 2; y++) {
                 invaders.push({
                     type: 'invader1',
-                    animationCounter: 0,
-                    deathAnimation: 0,
+                    animationCounter: 1,
                     points: 1,
                     x: leftmargin + this.images.get('invader1').width*1.3*x,
                     y: 2*this.images.get('invader2').height*1.3 
@@ -121,7 +118,7 @@ class SpaceInvaders {
         this.invaderspeed = 1;
         this.shots = [];
         this.frame = 0;
-        this.paused = false;
+        this.state = 0;
         this.enabled = false;
         this.eventsrc.addEventListener('focus', ()=>{if(!this.enabled){this.enable()}});
         this.eventsrc.addEventListener('blur', ()=>{if(this.enabled){this.disable()}});
@@ -130,7 +127,7 @@ class SpaceInvaders {
         this.enabled = true;
         this.eventsrc.addEventListener('keyup', this.keyupFunction);
         this.eventsrc.addEventListener('keydown', this.keydownFunction);
-        this.intervalID = setInterval(() => this.gameLoop(), 1000/this.fps);
+        this.intervalID = setInterval(() => this.render(), 1000/this.fps);
     }
     disable() {
         this.enabled = false;
@@ -143,7 +140,7 @@ class SpaceInvaders {
         if(this.eventsrc === document) {
             this.enable();
         } else {
-            this.gameLoop(); // Render first frame of the game
+            this.render();
         }
     }
     focus() {
@@ -173,62 +170,74 @@ class SpaceInvaders {
         });
         return result;
     }
-    gameLoop() {
-        if(this.paused) {
-            const pausex = 340;
-            const pausey = this.height/2;
-            this.context.font = '80px Arial';
-            this.context.fillStyle = 'black';
-            this.context.fillText('PAUSED', pausex - 5, pausey - 5);
-            this.context.fillText('PAUSED', pausex - 5, pausey + 5);
-            this.context.fillText('PAUSED', pausex + 5, pausey - 5);
-            this.context.fillText('PAUSED', pausex + 5, pausey + 5);
-            this.context.fillStyle = 'white';
-            this.context.fillText('PAUSED', pausex, pausey);
-        } else {
-            // Background
-            this.context.fillStyle = 'black';
-            this.context.fillRect(0, 0, this.width, this.height);
-            // Player
-            this.drawAsset('player', this.player.x, this.player.y);
-            let nextPosition = this.player.x + this.player.speed
-            if(nextPosition > this.leftlimit && nextPosition + this.images.get('player').width < this.rightlimit) {
-                this.player.x = nextPosition;
-            }
-            // Invaders
-            this.invaders.forEach((invader) => {
-                if(this.frame % this.animationCounterFreq === 0) {
-                    invader.animationCounter = (invader.animationCounter + 1) % 2;
-                }
-                this.drawAsset(invader.type, invader.x, invader.y, invader.animationCounter);
-                invader.x += this.invaderspeed;
-            });
-            let changedDirection = true;
-            if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
-                this.invaderspeed = -(Math.abs(this.invaderspeed) + this.invaderspeedincrease);
-            } else if(this.leftmostInvader().x <= this.leftlimit) {
-                this.invaderspeed = (Math.abs(this.invaderspeed) + this.invaderspeedincrease);
-            } else {
-                changedDirection = false;
-            }
-            if(changedDirection) {
-                this.invaders.forEach((invader) => {
-                    invader.y += this.invaderdown;
-                });
-            }
-            // Player shots
-            this.shots.forEach((element) => {
-                element.y -= this.shotspeed;
-            });
-            while(this.shots.length > 0 && this.shots[0].y <= this.uplimit) {
-                this.shots.shift();
-            }
-            this.shots.forEach((element) => {
-                this.drawAsset('shot', element.x, element.y);
-            });
-            // Increment frame counter
-            this.frame++;
+    render() {
+        switch(this.state) {
+            case 0:
+                this.renderGame();
+                break;
+            case 1:
+                this.renderPause();
+                break;
+            default:
+                // console.error(`${this} is in invalid state ${this.state}`);
+                break;
         }
+    }
+    renderPause() {
+        const pausex = 340;
+        const pausey = this.height/2;
+        this.context.font = '80px Arial';
+        this.context.fillStyle = 'black';
+        this.context.fillText('PAUSED', pausex - 5, pausey - 5);
+        this.context.fillText('PAUSED', pausex - 5, pausey + 5);
+        this.context.fillText('PAUSED', pausex + 5, pausey - 5);
+        this.context.fillText('PAUSED', pausex + 5, pausey + 5);
+        this.context.fillStyle = 'white';
+        this.context.fillText('PAUSED', pausex, pausey);
+    }
+    renderGame() {
+        // Background
+        this.context.fillStyle = 'black';
+        this.context.fillRect(0, 0, this.width, this.height);
+        // Player
+        this.drawAsset('player', this.player.x, this.player.y);
+        let nextPosition = this.player.x + this.player.speed
+        if(nextPosition > this.leftlimit && nextPosition + this.images.get('player').width < this.rightlimit) {
+            this.player.x = nextPosition;
+        }
+        // Invaders
+        this.invaders.forEach((invader) => {
+            if(this.frame % this.animationPeriod === 0) {
+                invader.animationCounter = (invader.animationCounter + 1) % 2;
+            }
+            this.drawAsset(invader.type, invader.x, invader.y, invader.animationCounter);
+            invader.x += this.invaderspeed;
+        });
+        let changedDirection = true;
+        if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
+            this.invaderspeed = -(Math.abs(this.invaderspeed) + this.invaderspeedincrease);
+        } else if(this.leftmostInvader().x <= this.leftlimit) {
+            this.invaderspeed = (Math.abs(this.invaderspeed) + this.invaderspeedincrease);
+        } else {
+            changedDirection = false;
+        }
+        if(changedDirection) {
+            this.invaders.forEach((invader) => {
+                invader.y += this.invaderdown;
+            });
+        }
+        // Player shots
+        this.shots.forEach((element) => {
+            element.y -= this.shotspeed;
+        });
+        while(this.shots.length > 0 && this.shots[0].y <= this.uplimit) {
+            this.shots.shift();
+        }
+        this.shots.forEach((element) => {
+            this.drawAsset('shot', element.x, element.y);
+        });
+        // Increment frame counter
+        this.frame++;
     }
     onKeyup(evt) {
         switch(evt.keyCode) {
@@ -271,13 +280,17 @@ class SpaceInvaders {
             case 13:
                 // Return
                 if(!this.controls.pause) {
-                    this.paused = !this.paused;
+                    if(this.state === 0) {
+                        this.state = 1;
+                    } else if(this.state === 1) {
+                        this.state = 0;
+                    }
                     this.controls.pause = true;
                 }
                 break;
             case 32:
                 // Space
-                if(!this.paused && !this.controls.shot && this.shots.length < this.shotlimit) {
+                if(this.state === 0 && !this.controls.shot && this.shots.length < this.shotlimit) {
                     this.shots.push({
                         x: this.player.x + this.images.get('player').width/2 - this.images.get('shot').width/2,
                         y: this.player.y - this.images.get('shot').height*.8
