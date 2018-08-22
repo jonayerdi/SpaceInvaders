@@ -74,7 +74,7 @@ class SpaceInvaders {
         for(let x = 0; x < columns; x++) {
             for(let y = 0; y < 1; y++) {
                 invaders.push({
-                    type: 'invader3',
+                    asset: 'invader3',
                     animationCounter: 1,
                     points: 3,
                     x: leftmargin + this.images.get('invader3').width*1.3*x,
@@ -83,7 +83,7 @@ class SpaceInvaders {
             }
             for(let y = 0; y < 2; y++) {
                 invaders.push({
-                    type: 'invader2',
+                    asset: 'invader2',
                     animationCounter: 1,
                     points: 2,
                     x: leftmargin + this.images.get('invader2').width*1.3*x,
@@ -93,7 +93,7 @@ class SpaceInvaders {
             }
             for(let y = 0; y < 2; y++) {
                 invaders.push({
-                    type: 'invader1',
+                    asset: 'invader1',
                     animationCounter: 1,
                     points: 1,
                     x: leftmargin + this.images.get('invader1').width*1.3*x,
@@ -170,6 +170,15 @@ class SpaceInvaders {
         });
         return result;
     }
+    isOverlap1D(p00, p01, p10, p11) {
+        return (p00 < p10 && p01 > p10) || (p10 < p00 && p11 > p00);
+    }
+    isOverlap2D(object1, object2) {
+        const img1 = this.images.get(object1.asset);
+        const img2 = this.images.get(object2.asset);
+        return this.isOverlap1D(object1.x, object1.x + img1.width, object2.x, object2.x + img2.width)
+            && this.isOverlap1D(object1.y, object1.y + img1.height, object2.y, object2.y + img2.height);
+    }
     render() {
         switch(this.state) {
             case 0:
@@ -199,6 +208,22 @@ class SpaceInvaders {
         // Background
         this.context.fillStyle = 'black';
         this.context.fillRect(0, 0, this.width, this.height);
+        // Player shots
+        {
+            let shotIndicesToDelete = [];
+            this.shots.forEach((element, index) => {
+                element.y -= this.shotspeed;
+                if(element.y <= this.uplimit) {
+                    shotIndicesToDelete.push(index);
+                }
+            });
+            shotIndicesToDelete.sort((a,b) => b-a).forEach((i) => {
+                this.shots.splice(i, 1);
+            });
+            this.shots.forEach((element) => {
+                this.drawAsset('shot', element.x, element.y);
+            });
+        }
         // Player
         this.drawAsset('player', this.player.x, this.player.y);
         let nextPosition = this.player.x + this.player.speed
@@ -206,36 +231,47 @@ class SpaceInvaders {
             this.player.x = nextPosition;
         }
         // Invaders
-        this.invaders.forEach((invader) => {
-            if(this.frame % this.animationPeriod === 0) {
-                invader.animationCounter = (invader.animationCounter + 1) % 2;
-            }
-            this.drawAsset(invader.type, invader.x, invader.y, invader.animationCounter);
-            invader.x += this.invaderspeed;
-        });
-        let changedDirection = true;
-        if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
-            this.invaderspeed = -(Math.abs(this.invaderspeed) + this.invaderspeedincrease);
-        } else if(this.leftmostInvader().x <= this.leftlimit) {
-            this.invaderspeed = (Math.abs(this.invaderspeed) + this.invaderspeedincrease);
-        } else {
-            changedDirection = false;
-        }
-        if(changedDirection) {
-            this.invaders.forEach((invader) => {
-                invader.y += this.invaderdown;
+        {
+            let invaderIndicesToDelete = []; 
+            this.invaders.forEach((invader, invaderIndex) => {
+                let shotIndex = (() => {
+                    for(let i in this.shots) {
+                        if(this.isOverlap2D(this.shots[i], invader)) {
+                            return i;
+                        }
+                    }
+                    return null;
+                })();
+                if(shotIndex) {
+                    this.shots.splice(shotIndex, 1);
+                    invaderIndicesToDelete.push(invaderIndex);
+                } else {
+                    if(this.frame % this.animationPeriod === 0) {
+                        invader.animationCounter = (invader.animationCounter + 1) % 2;
+                    }
+                    this.drawAsset(invader.asset, invader.x, invader.y, invader.animationCounter);
+                    invader.x += this.invaderspeed;
+                }
+            });
+            invaderIndicesToDelete.sort((a,b) => b-a).forEach((i) => {
+                this.invaders.splice(i, 1);
             });
         }
-        // Player shots
-        this.shots.forEach((element) => {
-            element.y -= this.shotspeed;
-        });
-        while(this.shots.length > 0 && this.shots[0].y <= this.uplimit) {
-            this.shots.shift();
+        {
+            let changedDirection = true;
+            if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
+                this.invaderspeed = -(Math.abs(this.invaderspeed) + this.invaderspeedincrease);
+            } else if(this.leftmostInvader().x <= this.leftlimit) {
+                this.invaderspeed = (Math.abs(this.invaderspeed) + this.invaderspeedincrease);
+            } else {
+                changedDirection = false;
+            }
+            if(changedDirection) {
+                this.invaders.forEach((invader) => {
+                    invader.y += this.invaderdown;
+                });
+            }
         }
-        this.shots.forEach((element) => {
-            this.drawAsset('shot', element.x, element.y);
-        });
         // Increment frame counter
         this.frame++;
     }
@@ -293,7 +329,8 @@ class SpaceInvaders {
                 if(this.state === 0 && !this.controls.shot && this.shots.length < this.shotlimit) {
                     this.shots.push({
                         x: this.player.x + this.images.get('player').width/2 - this.images.get('shot').width/2,
-                        y: this.player.y - this.images.get('shot').height*.8
+                        y: this.player.y - this.images.get('shot').height*.8,
+                        asset: 'shot'
                     });
                     this.controls.shot = true;
                 }
