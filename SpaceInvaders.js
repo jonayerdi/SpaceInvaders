@@ -257,7 +257,7 @@ class SpaceInvaders {
                 this.invaders.splice(i, 1);
             });
         }
-        {
+        if(this.invaders.length > 0) {
             let changedDirection = true;
             if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
                 this.invaderspeed = -(Math.abs(this.invaderspeed) + this.invaderspeedincrease);
