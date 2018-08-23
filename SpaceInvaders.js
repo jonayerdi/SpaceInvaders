@@ -17,6 +17,7 @@ class SpaceInvaders {
         this.invaderdown = 8;
         this.fps = 30;
         this.animationPeriod = this.fps * .6;
+        this.deathAnimationPeriod = this.fps * 0.05;
         this.imageData = [
             {name: 'player', srcs: ['assets/player.png'], width: 90, height: 40},
             {name: 'shot', srcs: ['assets/shot.png'], width: 6, height: 50},
@@ -24,6 +25,7 @@ class SpaceInvaders {
             {name: 'invader2', srcs: ['assets/invader2_0.png', 'assets/invader2_1.png'], width: 80, height: 70},
             {name: 'invader3', srcs: ['assets/invader3_0.png', 'assets/invader3_1.png'], width: 80, height: 60},
             {name: 'ufo', srcs: ['assets/ufo_0.png', 'assets/ufo_1.png'], width: 90, height: 40},
+            {name: 'death', srcs: ['assets/death1.png', 'assets/death2.png', 'assets/death3.png'], width: 60, height: 60},
         ];
         // Initialization
         this.context = context;
@@ -105,18 +107,19 @@ class SpaceInvaders {
         }
         return invaders;
     }
-    init() {
+    init(score=0, lives=this.maxlives) {
         this.controls = {pause: false, left: false, right: false, shot: false};
         this.player = {
             x: this.width/2 - this.images.get('player').width/2,
             y: this.downlimit - this.images.get('player').height,
             speed: 0,
-            score: 0,
-            lives: this.maxlives
+            score: score,
+            lives: lives
         };
         this.invaders = this.initialInvaders();
-        this.invaderspeed = 1;
+        this.deathAnimations = [];
         this.shots = [];
+        this.invaderspeed = 1;
         this.frame = 0;
         this.state = 0;
         this.enabled = false;
@@ -179,9 +182,97 @@ class SpaceInvaders {
         return this.isOverlap1D(object1.x, object1.x + img1.width, object2.x, object2.x + img2.width)
             && this.isOverlap1D(object1.y, object1.y + img1.height, object2.y, object2.y + img2.height);
     }
+    nextFrame() {
+        // Player shots
+        {
+            let shotIndicesToDelete = [];
+            this.shots.forEach((element, index) => {
+                element.y -= this.shotspeed;
+                if(element.y <= this.uplimit) {
+                    shotIndicesToDelete.push(index);
+                }
+            });
+            shotIndicesToDelete.sort((a,b) => b-a).forEach((i) => {
+                this.shots.splice(i, 1);
+            });
+        }
+        // Player
+        {
+            let nextPosition = this.player.x + this.player.speed
+            if(nextPosition > this.leftlimit && nextPosition + this.images.get('player').width < this.rightlimit) {
+                this.player.x = nextPosition;
+            }
+        }
+        // Invaders
+        {
+            let invaderIndicesToDelete = []; 
+            this.invaders.forEach((invader, invaderIndex) => {
+                let shotIndex = (() => {
+                    for(let i in this.shots) {
+                        if(this.isOverlap2D(this.shots[i], invader)) {
+                            return i;
+                        }
+                    }
+                    return null;
+                })();
+                if(shotIndex) {
+                    this.shots.splice(shotIndex, 1);
+                    invaderIndicesToDelete.push(invaderIndex);
+                } else {
+                    if(this.frame % this.animationPeriod === 0) {
+                        invader.animationCounter = (invader.animationCounter + 1) % 2;
+                    }
+                    invader.x += this.invaderspeed;
+                }
+            });
+            invaderIndicesToDelete.sort((a,b) => b-a).forEach((i) => {
+                const invader = this.invaders[i];
+                this.player.score += invader.points;
+                this.deathAnimations.push({
+                    x: invader.x - ((this.images.get('death').width - this.images.get(invader.asset).width) / 2),
+                    y: invader.y - ((this.images.get('death').height - this.images.get(invader.asset).height) / 2),
+                    frame: 0,
+                    imageIndex: 0
+                });
+                this.invaders.splice(i, 1);
+            });
+        }
+        if(this.invaders.length > 0) {
+            let changedDirection = true;
+            if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
+                this.invaderspeed = -(Math.abs(this.invaderspeed) + this.invaderspeedincrease);
+            } else if(this.leftmostInvader().x <= this.leftlimit) {
+                this.invaderspeed = (Math.abs(this.invaderspeed) + this.invaderspeedincrease);
+            } else {
+                changedDirection = false;
+            }
+            if(changedDirection) {
+                this.invaders.forEach((invader) => {
+                    invader.y += this.invaderdown;
+                });
+            }
+        }
+        // Invader death animations
+        {
+            let deathAnimationIndicesToDelete = []; 
+            this.deathAnimations.forEach((animation, animationIndex) => {
+                animation.frame++;
+                animation.imageIndex = Math.floor(animation.frame / this.deathAnimationPeriod);
+                if(animation.imageIndex >= this.images.get('death').imgs.length) {
+                    deathAnimationIndicesToDelete.push(animationIndex);
+                }
+            });
+            deathAnimationIndicesToDelete.sort((a,b) => b-a).forEach((i) => {
+                this.deathAnimations.splice(i, 1);
+            });
+        }
+        // Increment frame counter
+        this.frame++;
+    }
     render() {
         switch(this.state) {
             case 0:
+                this.nextFrame();
                 this.renderGame();
                 break;
             case 1:
@@ -209,71 +300,19 @@ class SpaceInvaders {
         this.context.fillStyle = 'black';
         this.context.fillRect(0, 0, this.width, this.height);
         // Player shots
-        {
-            let shotIndicesToDelete = [];
-            this.shots.forEach((element, index) => {
-                element.y -= this.shotspeed;
-                if(element.y <= this.uplimit) {
-                    shotIndicesToDelete.push(index);
-                }
-            });
-            shotIndicesToDelete.sort((a,b) => b-a).forEach((i) => {
-                this.shots.splice(i, 1);
-            });
-            this.shots.forEach((element) => {
-                this.drawAsset('shot', element.x, element.y);
-            });
-        }
+        this.shots.forEach((element) => {
+            this.drawAsset('shot', element.x, element.y);
+        });
         // Player
         this.drawAsset('player', this.player.x, this.player.y);
-        let nextPosition = this.player.x + this.player.speed
-        if(nextPosition > this.leftlimit && nextPosition + this.images.get('player').width < this.rightlimit) {
-            this.player.x = nextPosition;
-        }
         // Invaders
-        {
-            let invaderIndicesToDelete = []; 
-            this.invaders.forEach((invader, invaderIndex) => {
-                let shotIndex = (() => {
-                    for(let i in this.shots) {
-                        if(this.isOverlap2D(this.shots[i], invader)) {
-                            return i;
-                        }
-                    }
-                    return null;
-                })();
-                if(shotIndex) {
-                    this.shots.splice(shotIndex, 1);
-                    invaderIndicesToDelete.push(invaderIndex);
-                } else {
-                    if(this.frame % this.animationPeriod === 0) {
-                        invader.animationCounter = (invader.animationCounter + 1) % 2;
-                    }
-                    this.drawAsset(invader.asset, invader.x, invader.y, invader.animationCounter);
-                    invader.x += this.invaderspeed;
-                }
-            });
-            invaderIndicesToDelete.sort((a,b) => b-a).forEach((i) => {
-                this.invaders.splice(i, 1);
-            });
-        }
-        if(this.invaders.length > 0) {
-            let changedDirection = true;
-            if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
-                this.invaderspeed = -(Math.abs(this.invaderspeed) + this.invaderspeedincrease);
-            } else if(this.leftmostInvader().x <= this.leftlimit) {
-                this.invaderspeed = (Math.abs(this.invaderspeed) + this.invaderspeedincrease);
-            } else {
-                changedDirection = false;
-            }
-            if(changedDirection) {
-                this.invaders.forEach((invader) => {
-                    invader.y += this.invaderdown;
-                });
-            }
-        }
-        // Increment frame counter
-        this.frame++;
+        this.invaders.forEach((invader) => {
+            this.drawAsset(invader.asset, invader.x, invader.y, invader.animationCounter);
+        });
+        // Invader death animations
+        this.deathAnimations.forEach((animation) => {
+            this.drawAsset('death', animation.x, animation.y, animation.imageIndex);
+        });
     }
     onKeyup(evt) {
         switch(evt.keyCode) {
