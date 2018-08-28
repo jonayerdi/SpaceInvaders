@@ -13,11 +13,15 @@ class SpaceInvaders {
         this.shotlimit = 3;
         this.shotspeed = 10;
         this.ufospeed = 4;
-        this.invaderspeedincrease = .1;
         this.invaderdown = 8;
         this.fps = 30;
         this.animationPeriod = this.fps * .6;
         this.deathAnimationPeriod = this.fps * 0.05;
+        this.invaderinitialspeed = 1;
+        this.invaderspeedincrease = {
+            death: .05,
+            level: 1,
+        }
         this.keybindings = {
             left: 37, // Left Arrow
             right: 39, // Right Arrow
@@ -35,9 +39,14 @@ class SpaceInvaders {
         ];
         // Initialization
         this.context = context;
+        this.level = 0;
+        this.frame = 0;
+        this.state = 0;
+        this.enabled = false;
         this.keyupFunction = (evt) => this.onKeyup(evt);
         this.keydownFunction = (evt) => this.onKeydown(evt);
-        // Context
+        this.eventsrc.addEventListener('focus', ()=>{if(!this.enabled){this.enable()}});
+        this.eventsrc.addEventListener('blur', ()=>{if(this.enabled){this.disable()}});
         this.context.scale(width/this.width, height/this.height)
     }
     load() {
@@ -125,12 +134,7 @@ class SpaceInvaders {
         this.invaders = this.initialInvaders();
         this.deathAnimations = [];
         this.shots = [];
-        this.invaderspeed = 1;
-        this.frame = 0;
-        this.state = 0;
-        this.enabled = false;
-        this.eventsrc.addEventListener('focus', ()=>{if(!this.enabled){this.enable()}});
-        this.eventsrc.addEventListener('blur', ()=>{if(this.enabled){this.disable()}});
+        this.invaderspeed = this.invaderinitialspeed;
     }
     enable() {
         this.enabled = true;
@@ -149,7 +153,7 @@ class SpaceInvaders {
         if(this.eventsrc === document) {
             this.enable();
         } else {
-            this.render();
+            this.render(); // Render first frame
         }
     }
     focus() {
@@ -242,13 +246,14 @@ class SpaceInvaders {
                 });
                 this.invaders.splice(i, 1);
             });
+            this.invaderspeed += this.invaderspeedincrease.death * invaderIndicesToDelete.length * (this.invaderspeed < 0 ? -1 : 1);
         }
         if(this.invaders.length > 0) {
             let changedDirection = true;
             if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
-                this.invaderspeed = -(Math.abs(this.invaderspeed) + this.invaderspeedincrease);
+                this.invaderspeed = -Math.abs(this.invaderspeed);
             } else if(this.leftmostInvader().x <= this.leftlimit) {
-                this.invaderspeed = (Math.abs(this.invaderspeed) + this.invaderspeedincrease);
+                this.invaderspeed = Math.abs(this.invaderspeed);
             } else {
                 changedDirection = false;
             }
@@ -257,6 +262,11 @@ class SpaceInvaders {
                     invader.y += this.invaderdown;
                 });
             }
+        } else {
+            // Reset level
+            this.level++;
+            this.invaders = this.initialInvaders();
+            this.invaderspeed = this.invaderinitialspeed + (this.invaderspeedincrease.level * this.level);
         }
         // Invader death animations
         {
