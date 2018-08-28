@@ -294,8 +294,12 @@ class SpaceInvaders {
             case 1:
                 this.renderPause();
                 break;
+            case -1:
+                // Error or something
+                break;
             default:
-                // console.error(`${this} is in invalid state ${this.state}`);
+                console.error(`Game in invalid state: ${this.state}`);
+                this.state = -1;
                 break;
         }
     }
