@@ -17,6 +17,18 @@ class SpaceInvaders {
         this.fps = 30;
         this.animationPeriod = this.fps * .6;
         this.deathAnimationPeriod = this.fps * 0.05;
+        this.deathAnimationFrames = 12;
+        this.deathAnimationPoints = {
+            initialPosition: {
+                x: 0,
+                y: 0
+            },
+            frameDelta: {
+                x: 0,
+                y: -1
+            }
+        }
+        this.invaderdownlimit = 920;
         this.invaderinitialspeed = 1;
         this.invaderspeedincrease = {
             death: .05,
@@ -39,14 +51,13 @@ class SpaceInvaders {
         ];
         // Initialization
         this.context = context;
-        this.level = 0;
         this.frame = 0;
         this.state = 0;
         this.enabled = false;
         this.keyupFunction = (evt) => this.onKeyup(evt);
         this.keydownFunction = (evt) => this.onKeydown(evt);
-        this.eventsrc.addEventListener('focus', ()=>{if(!this.enabled){this.enable()}});
-        this.eventsrc.addEventListener('blur', ()=>{if(this.enabled){this.disable()}});
+        this.eventsrc.addEventListener('focus', ()=>{this.enable()});
+        this.eventsrc.addEventListener('blur', ()=>{this.disable()});
         this.context.scale(width/this.width, height/this.height)
     }
     load() {
@@ -93,7 +104,7 @@ class SpaceInvaders {
                 invaders.push({
                     asset: 'invader3',
                     animationCounter: 1,
-                    points: 3,
+                    points: 80,
                     x: leftmargin + this.images.get('invader3').width*1.3*x,
                     y: topmargin + this.images.get('invader3').height*1.3*y
                 });
@@ -102,7 +113,7 @@ class SpaceInvaders {
                 invaders.push({
                     asset: 'invader2',
                     animationCounter: 1,
-                    points: 2,
+                    points: 60,
                     x: leftmargin + this.images.get('invader2').width*1.3*x,
                     y: this.images.get('invader3').height*1.3 
                         + topmargin + this.images.get('invader2').height*1.3*y
@@ -112,7 +123,7 @@ class SpaceInvaders {
                 invaders.push({
                     asset: 'invader1',
                     animationCounter: 1,
-                    points: 1,
+                    points: 50,
                     x: leftmargin + this.images.get('invader1').width*1.3*x,
                     y: 2*this.images.get('invader2').height*1.3 
                         + this.images.get('invader3').height*1.3
@@ -123,7 +134,7 @@ class SpaceInvaders {
         return invaders;
     }
     init() {
-        this.controls = {pause: false, left: false, right: false, shot: false};
+        this.controls = { pause: false, left: false, right: false, shot: false };
         this.player = {
             x: this.width/2 - this.images.get('player').width/2,
             y: this.downlimit - this.images.get('player').height,
@@ -135,18 +146,23 @@ class SpaceInvaders {
         this.deathAnimations = [];
         this.shots = [];
         this.invaderspeed = this.invaderinitialspeed;
+        this.level = 0;
     }
     enable() {
-        this.enabled = true;
-        this.eventsrc.addEventListener('keyup', this.keyupFunction);
-        this.eventsrc.addEventListener('keydown', this.keydownFunction);
-        this.intervalID = setInterval(() => this.render(), 1000/this.fps);
+        if(!this.enabled) {
+            this.enabled = true;
+            this.eventsrc.addEventListener('keyup', this.keyupFunction);
+            this.eventsrc.addEventListener('keydown', this.keydownFunction);
+            this.intervalID = setInterval(() => this.render(), 1000/this.fps);
+        }
     }
     disable() {
-        this.enabled = false;
-        clearInterval(this.intervalID);
-        this.eventsrc.removeEventListener('keydown', this.keydownFunction);
-        this.eventsrc.removeEventListener('keyup', this.keyupFunction);
+        if(this.enabled) {
+            this.enabled = false;
+            clearInterval(this.intervalID);
+            this.eventsrc.removeEventListener('keydown', this.keydownFunction);
+            this.eventsrc.removeEventListener('keyup', this.keyupFunction);
+        }
     }
     start() {
         this.init();
@@ -229,6 +245,9 @@ class SpaceInvaders {
                     this.shots.splice(shotIndex, 1);
                     invaderIndicesToDelete.push(invaderIndex);
                 } else {
+                    if(invader.y + this.images.get(invader.asset).height > this.invaderdownlimit) {
+                        this.state = 2;
+                    }
                     if(this.frame % this.animationPeriod === 0) {
                         invader.animationCounter = (invader.animationCounter + 1) % 2;
                     }
@@ -237,10 +256,12 @@ class SpaceInvaders {
             });
             invaderIndicesToDelete.sort((a,b) => b-a).forEach((i) => {
                 const invader = this.invaders[i];
-                this.player.score += invader.points;
+                const points = invader.points * (this.level + 1);
+                this.player.score += points;
                 this.deathAnimations.push({
                     x: invader.x - ((this.images.get('death').width - this.images.get(invader.asset).width) / 2),
                     y: invader.y - ((this.images.get('death').height - this.images.get(invader.asset).height) / 2),
+                    points: points,
                     frame: 0,
                     imageIndex: 0
                 });
@@ -274,7 +295,7 @@ class SpaceInvaders {
             this.deathAnimations.forEach((animation, animationIndex) => {
                 animation.frame++;
                 animation.imageIndex = Math.floor(animation.frame / this.deathAnimationPeriod);
-                if(animation.imageIndex >= this.images.get('death').imgs.length) {
+                if(animation.frame > this.deathAnimationFrames) {
                     deathAnimationIndicesToDelete.push(animationIndex);
                 }
             });
@@ -287,33 +308,36 @@ class SpaceInvaders {
     }
     render() {
         switch(this.state) {
-            case 0:
+            case 0: // Playing
                 this.nextFrame();
                 this.renderGame();
                 break;
-            case 1:
+            case 1: // Paused
                 this.renderPause();
                 break;
-            case -1:
-                // Error or something
+            case 2: // Game Over
+                this.renderGameOver();
+                break;
+            case undefined: // Error or something
                 break;
             default:
                 console.error(`Game in invalid state: ${this.state}`);
-                this.state = -1;
+                this.state = undefined;
                 break;
         }
     }
     renderPause() {
+        const text = 'PAUSED';
         const pausex = 340;
         const pausey = this.height/2;
         this.context.font = '80px Arial';
         this.context.fillStyle = 'black';
-        this.context.fillText('PAUSED', pausex - 5, pausey - 5);
-        this.context.fillText('PAUSED', pausex - 5, pausey + 5);
-        this.context.fillText('PAUSED', pausex + 5, pausey - 5);
-        this.context.fillText('PAUSED', pausex + 5, pausey + 5);
+        this.context.fillText(text, pausex - 5, pausey - 5);
+        this.context.fillText(text, pausex - 5, pausey + 5);
+        this.context.fillText(text, pausex + 5, pausey - 5);
+        this.context.fillText(text, pausex + 5, pausey + 5);
         this.context.fillStyle = 'white';
-        this.context.fillText('PAUSED', pausex, pausey);
+        this.context.fillText(text, pausex, pausey);
     }
     renderGame() {
         // Background
@@ -331,8 +355,30 @@ class SpaceInvaders {
         });
         // Invader death animations
         this.deathAnimations.forEach((animation) => {
-            this.drawAsset('death', animation.x, animation.y, animation.imageIndex);
+            const pointsx = animation.x + this.deathAnimationPoints.initialPosition.x 
+                + (this.deathAnimationPoints.frameDelta.x * animation.frame);
+            const pointsy = animation.y + this.deathAnimationPoints.initialPosition.y 
+                + (this.deathAnimationPoints.frameDelta.y * animation.frame);
+            if(animation.imageIndex < this.images.get('death').imgs.length) {
+                this.drawAsset('death', animation.x, animation.y, animation.imageIndex);
+            }
+            this.context.font = '20px Arial';
+            this.context.fillStyle = animation.frame % 4 < 3 ? 'white' : '#9999FF';
+            this.context.fillText(animation.points, pointsx, pointsy);
         });
+    }
+    renderGameOver() {
+        const text = 'GAME OVER';
+        const pausex = 240;
+        const pausey = this.height/2;
+        this.context.font = '90px Arial';
+        this.context.fillStyle = 'black';
+        this.context.fillText(text, pausex - 5, pausey - 5);
+        this.context.fillText(text, pausex - 5, pausey + 5);
+        this.context.fillText(text, pausex + 5, pausey - 5);
+        this.context.fillText(text, pausex + 5, pausey + 5);
+        this.context.fillStyle = 'white';
+        this.context.fillText(text, pausex, pausey);
     }
     onKeyup(evt) {
         switch(evt.keyCode) {
@@ -367,6 +413,9 @@ class SpaceInvaders {
                     if(this.state === 0) {
                         this.state = 1;
                     } else if(this.state === 1) {
+                        this.state = 0;
+                    } else if(this.state === 2) {
+                        this.init();
                         this.state = 0;
                     }
                     this.controls.pause = true;
