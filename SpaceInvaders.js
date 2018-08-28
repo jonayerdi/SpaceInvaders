@@ -40,14 +40,15 @@ class SpaceInvaders {
             shoot: 32, // Space
             pause: 13, // Return
         }
+        this.assetsRoot = 'assets/';
         this.imageData = [
-            {name: 'player', srcs: ['assets/player.png'], width: 90, height: 40},
-            {name: 'shot', srcs: ['assets/shot.png'], width: 6, height: 50},
-            {name: 'invader1', srcs: ['assets/invader1_0.png', 'assets/invader1_1.png'], width: 80, height: 50},
-            {name: 'invader2', srcs: ['assets/invader2_0.png', 'assets/invader2_1.png'], width: 80, height: 70},
-            {name: 'invader3', srcs: ['assets/invader3_0.png', 'assets/invader3_1.png'], width: 80, height: 60},
-            {name: 'ufo', srcs: ['assets/ufo_0.png', 'assets/ufo_1.png'], width: 90, height: 40},
-            {name: 'death', srcs: ['assets/death1.png', 'assets/death2.png', 'assets/death3.png'], width: 60, height: 60},
+            {name: 'player', srcs: ['player.png'], width: 90, height: 40},
+            {name: 'shot', srcs: ['shot.png'], width: 6, height: 50},
+            {name: 'invader1', srcs: ['invader1_0.png', 'invader1_1.png'], width: 80, height: 50},
+            {name: 'invader2', srcs: ['invader2_0.png', 'invader2_1.png'], width: 80, height: 70},
+            {name: 'invader3', srcs: ['invader3_0.png', 'invader3_1.png'], width: 80, height: 60},
+            {name: 'ufo', srcs: ['ufo_0.png', 'ufo_1.png'], width: 90, height: 40},
+            {name: 'death', srcs: ['death1.png', 'death2.png', 'death3.png'], width: 60, height: 60},
         ];
         // Initialization
         this.context = context;
@@ -60,12 +61,13 @@ class SpaceInvaders {
         this.eventsrc.addEventListener('blur', ()=>{this.disable()});
         this.context.scale(width/this.width, height/this.height)
     }
-    load() {
+    load(assetsRoot=this.assetsRoot) {
         return new Promise((resolve, reject) => {
             if(this.images) {
                 resolve();
             } else {
-                Promise.all(this.imageData.map(data => Promise.all(data.srcs.map(src => new Promise((resolve, reject) => {
+                Promise.all(this.imageData.map(data => Promise.all(data.srcs.map(file => new Promise((resolve, reject) => {
+                    let src = assetsRoot + file;
                     let img = new Image();
                     img.onload = () => resolve({name: data.name, img: img});
                     img.onerror = () => reject(`Could not load ${src}`);
