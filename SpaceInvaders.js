@@ -63,7 +63,7 @@ class SpaceInvaders {
     }
     load(assetsRoot=this.assetsRoot) {
         return new Promise((resolve, reject) => {
-            if(this.images) {
+            if(this.assets) {
                 resolve();
             } else {
                 Promise.all(this.imageData.map(data => Promise.all(data.srcs.map(file => new Promise((resolve, reject) => {
@@ -74,7 +74,7 @@ class SpaceInvaders {
                     img.src = src;
                 })))))
                 .then((loadedAssets) => {
-                    this.images = (() => {
+                    this.assets = (() => {
                         let result = new Map();
                         this.imageData.forEach((element) => {
                             result.set(element.name, {
@@ -87,7 +87,7 @@ class SpaceInvaders {
                     })();
                     loadedAssets.forEach((asset) => {
                         asset.forEach((image) => {
-                            this.images.get(image.name).imgs.push(image.img);
+                            this.assets.get(image.name).imgs.push(image.img);
                         });
                     });
                     resolve();
@@ -107,8 +107,8 @@ class SpaceInvaders {
                     asset: 'invader3',
                     animationCounter: 1,
                     points: 80,
-                    x: leftmargin + this.images.get('invader3').width*1.3*x,
-                    y: topmargin + this.images.get('invader3').height*1.3*y
+                    x: leftmargin + this.assets.get('invader3').width*1.3*x,
+                    y: topmargin + this.assets.get('invader3').height*1.3*y
                 });
             }
             for(let y = 0; y < 2; y++) {
@@ -116,9 +116,9 @@ class SpaceInvaders {
                     asset: 'invader2',
                     animationCounter: 1,
                     points: 60,
-                    x: leftmargin + this.images.get('invader2').width*1.3*x,
-                    y: this.images.get('invader3').height*1.3 
-                        + topmargin + this.images.get('invader2').height*1.3*y
+                    x: leftmargin + this.assets.get('invader2').width*1.3*x,
+                    y: this.assets.get('invader3').height*1.3 
+                        + topmargin + this.assets.get('invader2').height*1.3*y
                 });
             }
             for(let y = 0; y < 2; y++) {
@@ -126,10 +126,10 @@ class SpaceInvaders {
                     asset: 'invader1',
                     animationCounter: 1,
                     points: 50,
-                    x: leftmargin + this.images.get('invader1').width*1.3*x,
-                    y: 2*this.images.get('invader2').height*1.3 
-                        + this.images.get('invader3').height*1.3
-                        + topmargin + this.images.get('invader1').height*1.3*y
+                    x: leftmargin + this.assets.get('invader1').width*1.3*x,
+                    y: 2*this.assets.get('invader2').height*1.3 
+                        + this.assets.get('invader3').height*1.3
+                        + topmargin + this.assets.get('invader1').height*1.3*y
                 });
             }
         }
@@ -138,8 +138,8 @@ class SpaceInvaders {
     init() {
         this.controls = { pause: false, left: false, right: false, shot: false };
         this.player = {
-            x: this.width/2 - this.images.get('player').width/2,
-            y: this.downlimit - this.images.get('player').height,
+            x: this.width/2 - this.assets.get('player').width/2,
+            y: this.downlimit - this.assets.get('player').height,
             speed: 0,
             score: 0,
             lives: this.maxlives
@@ -180,7 +180,7 @@ class SpaceInvaders {
         }
     }
     drawAsset(name, x, y, imageIndex=0) {
-        let asset = this.images.get(name);
+        let asset = this.assets.get(name);
         this.context.drawImage(asset.imgs[imageIndex], x, y, asset.width, asset.height);
     }
     leftmostInvader() {
@@ -205,8 +205,8 @@ class SpaceInvaders {
         return (p00 < p10 && p01 > p10) || (p10 < p00 && p11 > p00);
     }
     isOverlap2D(object1, object2) {
-        const img1 = this.images.get(object1.asset);
-        const img2 = this.images.get(object2.asset);
+        const img1 = this.assets.get(object1.asset);
+        const img2 = this.assets.get(object2.asset);
         return this.isOverlap1D(object1.x, object1.x + img1.width, object2.x, object2.x + img2.width)
             && this.isOverlap1D(object1.y, object1.y + img1.height, object2.y, object2.y + img2.height);
     }
@@ -227,7 +227,7 @@ class SpaceInvaders {
         // Player
         {
             let nextPosition = this.player.x + this.player.speed
-            if(nextPosition > this.leftlimit && nextPosition + this.images.get('player').width < this.rightlimit) {
+            if(nextPosition > this.leftlimit && nextPosition + this.assets.get('player').width < this.rightlimit) {
                 this.player.x = nextPosition;
             }
         }
@@ -247,7 +247,7 @@ class SpaceInvaders {
                     this.shots.splice(shotIndex, 1);
                     invaderIndicesToDelete.push(invaderIndex);
                 } else {
-                    if(invader.y + this.images.get(invader.asset).height > this.invaderdownlimit) {
+                    if(invader.y + this.assets.get(invader.asset).height > this.invaderdownlimit) {
                         this.state = 2;
                     }
                     if(this.frame % this.animationPeriod === 0) {
@@ -261,8 +261,8 @@ class SpaceInvaders {
                 const points = invader.points * (this.level + 1);
                 this.player.score += points;
                 this.deathAnimations.push({
-                    x: invader.x - ((this.images.get('death').width - this.images.get(invader.asset).width) / 2),
-                    y: invader.y - ((this.images.get('death').height - this.images.get(invader.asset).height) / 2),
+                    x: invader.x - ((this.assets.get('death').width - this.assets.get(invader.asset).width) / 2),
+                    y: invader.y - ((this.assets.get('death').height - this.assets.get(invader.asset).height) / 2),
                     points: points,
                     frame: 0,
                     imageIndex: 0
@@ -273,7 +273,7 @@ class SpaceInvaders {
         }
         if(this.invaders.length > 0) {
             let changedDirection = true;
-            if(this.rightmostInvader().x + this.images.get('invader1').width >= this.rightlimit) {
+            if(this.rightmostInvader().x + this.assets.get('invader1').width >= this.rightlimit) {
                 this.invaderspeed = -Math.abs(this.invaderspeed);
             } else if(this.leftmostInvader().x <= this.leftlimit) {
                 this.invaderspeed = Math.abs(this.invaderspeed);
@@ -361,7 +361,7 @@ class SpaceInvaders {
                 + (this.deathAnimationPoints.frameDelta.x * animation.frame);
             const pointsy = animation.y + this.deathAnimationPoints.initialPosition.y 
                 + (this.deathAnimationPoints.frameDelta.y * animation.frame);
-            if(animation.imageIndex < this.images.get('death').imgs.length) {
+            if(animation.imageIndex < this.assets.get('death').imgs.length) {
                 this.drawAsset('death', animation.x, animation.y, animation.imageIndex);
             }
             this.context.font = '20px Arial';
@@ -426,8 +426,8 @@ class SpaceInvaders {
             case this.keybindings.shoot:
                 if(this.state === 0 && !this.controls.shot && this.shots.length < this.shotlimit) {
                     this.shots.push({
-                        x: this.player.x + this.images.get('player').width/2 - this.images.get('shot').width/2,
-                        y: this.player.y - this.images.get('shot').height*.8,
+                        x: this.player.x + this.assets.get('player').width/2 - this.assets.get('shot').width/2,
+                        y: this.player.y - this.assets.get('shot').height*.8,
                         asset: 'shot'
                     });
                     this.controls.shot = true;
