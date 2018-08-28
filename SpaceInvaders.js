@@ -18,6 +18,12 @@ class SpaceInvaders {
         this.fps = 30;
         this.animationPeriod = this.fps * .6;
         this.deathAnimationPeriod = this.fps * 0.05;
+        this.keybindings = {
+            left: 37, // Left Arrow
+            right: 39, // Right Arrow
+            shoot: 32, // Space
+            pause: 13, // Return
+        }
         this.imageData = [
             {name: 'player', srcs: ['assets/player.png'], width: 90, height: 40},
             {name: 'shot', srcs: ['assets/shot.png'], width: 6, height: 50},
@@ -107,14 +113,14 @@ class SpaceInvaders {
         }
         return invaders;
     }
-    init(score=0, lives=this.maxlives) {
+    init() {
         this.controls = {pause: false, left: false, right: false, shot: false};
         this.player = {
             x: this.width/2 - this.images.get('player').width/2,
             y: this.downlimit - this.images.get('player').height,
             speed: 0,
-            score: score,
-            lives: lives
+            score: 0,
+            lives: this.maxlives
         };
         this.invaders = this.initialInvaders();
         this.deathAnimations = [];
@@ -316,16 +322,13 @@ class SpaceInvaders {
     }
     onKeyup(evt) {
         switch(evt.keyCode) {
-            case 13:
-                // Return
+            case this.keybindings.pause:
                 this.controls.pause = false;
                 break;
-            case 32:
-                // Space
+            case this.keybindings.shoot:
                 this.controls.shot = false;
                 break;
-            case 37:
-                // Left
+            case this.keybindings.left:
                 this.controls.left = false;
                 if(this.controls.right) {
                     this.player.speed = this.playerspeed;
@@ -333,11 +336,7 @@ class SpaceInvaders {
                     this.player.speed = 0;
                 }
                 break;
-            case 38:
-                // Up
-                break;
-            case 39:
-                // Right
+            case this.keybindings.right:
                 this.controls.right = false;
                 if(this.controls.left) {
                     this.player.speed = -this.playerspeed;
@@ -345,15 +344,11 @@ class SpaceInvaders {
                     this.player.speed = 0;
                 }
                 break;
-            case 40:
-                // Down
-                break;
         }
     }
     onKeydown(evt) {
         switch(evt.keyCode) {
-            case 13:
-                // Return
+            case this.keybindings.pause:
                 if(!this.controls.pause) {
                     if(this.state === 0) {
                         this.state = 1;
@@ -363,8 +358,7 @@ class SpaceInvaders {
                     this.controls.pause = true;
                 }
                 break;
-            case 32:
-                // Space
+            case this.keybindings.shoot:
                 if(this.state === 0 && !this.controls.shot && this.shots.length < this.shotlimit) {
                     this.shots.push({
                         x: this.player.x + this.images.get('player').width/2 - this.images.get('shot').width/2,
@@ -374,21 +368,13 @@ class SpaceInvaders {
                     this.controls.shot = true;
                 }
                 break;
-            case 37:
-                // Left
+            case this.keybindings.left:
                 this.controls.left = true;
                 this.player.speed = -this.playerspeed;
                 break;
-            case 38:
-                // Up
-                break;
-            case 39:
-                // Right
+            case this.keybindings.right:
                 this.controls.right = true;
                 this.player.speed = this.playerspeed;
-                break;
-            case 40:
-                // Down
                 break;
         }
     }
