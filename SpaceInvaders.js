@@ -4,6 +4,7 @@ class SpaceInvaders {
         this.eventsrc = eventsrc ? eventsrc : document;
         this.width = 1000;
         this.height = 1000;
+        this.fps = 30;
         this.maxlives = 3;
         this.playerspeed = 8;
         this.leftlimit = 20;
@@ -13,8 +14,9 @@ class SpaceInvaders {
         this.shotlimit = 3;
         this.shotspeed = 10;
         this.ufospeed = 4;
+        this.ufomaxcount = 3;
+        this.ufoAnimationPeriod = this.fps * .3;
         this.invaderdown = 8;
-        this.fps = 30;
         this.animationPeriod = this.fps * .6;
         this.deathAnimationPeriod = this.fps * 0.05;
         this.deathAnimationFrames = 12;
@@ -116,6 +118,7 @@ class SpaceInvaders {
             for(let y = 0; y < 1; y++) {
                 invaders.push({
                     asset: 'invader3',
+                    spawnUFO: false,
                     animationCounter: 1,
                     points: 80,
                     x: leftmargin + this.assets.get('invader3').width*1.3*x,
@@ -125,6 +128,7 @@ class SpaceInvaders {
             for(let y = 0; y < 2; y++) {
                 invaders.push({
                     asset: 'invader2',
+                    spawnUFO: false,
                     animationCounter: 1,
                     points: 60,
                     x: leftmargin + this.assets.get('invader2').width*1.3*x,
@@ -135,6 +139,7 @@ class SpaceInvaders {
             for(let y = 0; y < 2; y++) {
                 invaders.push({
                     asset: 'invader1',
+                    spawnUFO: false,
                     animationCounter: 1,
                     points: 50,
                     x: leftmargin + this.assets.get('invader1').width*1.3*x,
@@ -142,6 +147,12 @@ class SpaceInvaders {
                         + this.assets.get('invader3').height*1.3
                         + topmargin + this.assets.get('invader1').height*1.3*y
                 });
+            }
+        }
+        {
+            const maxUFOs = Math.floor(Math.random()*(this.ufomaxcount + 1));
+            for(let i = 0; i < maxUFOs; i++) {
+                invaders[Math.floor(Math.random()*invaders.length)].spawnUFO = true;
             }
         }
         return invaders;
@@ -156,6 +167,7 @@ class SpaceInvaders {
             lives: this.maxlives
         };
         this.invaders = this.initialInvaders();
+        this.ufo = null;
         this.deathAnimations = [];
         this.shots = [];
         this.invaderspeed = this.invaderinitialspeed;
@@ -242,6 +254,41 @@ class SpaceInvaders {
                 this.player.x = nextPosition;
             }
         }
+        // UFO
+        {
+            if(this.ufo) {
+                if(this.ufo.x + (this.assets.get(this.ufo.asset).width)/2 >= this.rightlimit) {
+                    this.ufo = null;
+                } else {
+                    let shotIndex = (() => {
+                        for(let i in this.shots) {
+                            if(this.isOverlap2D(this.shots[i], this.ufo)) {
+                                return i;
+                            }
+                        }
+                        return null;
+                    })();
+                    if(shotIndex) {
+                        this.shots.splice(shotIndex, 1);
+                        const points = this.ufo.points * (this.level + 1);
+                        this.player.score += points;
+                        this.deathAnimations.push({
+                            x: this.ufo.x - ((this.assets.get('death').width - this.assets.get(this.ufo.asset).width) / 2),
+                            y: this.ufo.y - ((this.assets.get('death').height - this.assets.get(this.ufo.asset).height) / 2),
+                            points: points,
+                            frame: 0,
+                            imageIndex: 0
+                        });
+                        this.ufo = null;
+                    } else {
+                        if(this.frame % this.ufoAnimationPeriod === 0) {
+                            this.ufo.animationCounter = (this.ufo.animationCounter + 1) % 2;
+                        }
+                        this.ufo.x += this.ufospeed + this.level;
+                    }
+                }
+            }
+        }
         // Invaders
         {
             let invaderIndicesToDelete = []; 
@@ -279,6 +326,15 @@ class SpaceInvaders {
                     imageIndex: 0
                 });
                 this.invaders.splice(i, 1);
+                if(!this.ufo && invader.spawnUFO) {
+                    this.ufo = {
+                        asset: 'ufo',
+                        animationCounter: 1,
+                        points: 3000,
+                        x: this.leftlimit,
+                        y: 100
+                    }
+                }
             });
             this.invaderspeed += this.invaderspeedincrease.death * invaderIndicesToDelete.length * (this.invaderspeed < 0 ? -1 : 1);
         }
@@ -399,6 +455,10 @@ class SpaceInvaders {
         });
         // Player
         this.drawAsset('player', this.player.x, this.player.y);
+        // UFO
+        if(this.ufo) {
+            this.drawAsset(this.ufo.asset, this.ufo.x, this.ufo.y, this.ufo.animationCounter);
+        }
         // Invaders
         this.invaders.forEach((invader) => {
             this.drawAsset(invader.asset, invader.x, invader.y, invader.animationCounter);
