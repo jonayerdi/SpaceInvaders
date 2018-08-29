@@ -1,7 +1,9 @@
 class SpaceInvaders {
-    constructor(context, width, height, eventsrc=document) {
+    constructor(context, width, height, eventsrc=document, storage=window.localStorage) {
         // Configuration
-        this.eventsrc = eventsrc ? eventsrc : document;
+        this.eventsrc = eventsrc;
+        this.storage = storage;
+        this.bestscorekey = 'spaceinvaders_bestscore';
         this.width = 1000;
         this.height = 1000;
         this.fps = 30;
@@ -102,12 +104,12 @@ class SpaceInvaders {
     saveBestScore(score) {
         if(this.bestscore < score) {
             this.bestscore = score;
-            // TODO
+            this.storage.setItem(this.bestscorekey, this.bestscore);
         }
     }
     getBestScore() {
-        // TODO
-        return 0;
+        let bestscore = this.storage.getItem(this.bestscorekey);
+        return bestscore ? bestscore : 0;
     }
     initialInvaders() {
         const columns = 8;
@@ -284,7 +286,7 @@ class SpaceInvaders {
                         if(this.frame % this.ufoAnimationPeriod === 0) {
                             this.ufo.animationCounter = (this.ufo.animationCounter + 1) % 2;
                         }
-                        this.ufo.x += this.ufospeed + this.level;
+                        this.ufo.x += this.ufospeed;
                     }
                 }
             }
