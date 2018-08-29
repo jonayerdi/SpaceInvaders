@@ -42,7 +42,7 @@ class SpaceInvaders {
             shoot: 32, // Space
             pause: 13, // Return
         }
-        this.assetsRoot = 'assets/';
+        this.assetsRoot = 'data/image/';
         this.imageData = [
             {name: 'player', srcs: ['player.png'], width: 90, height: 40},
             {name: 'shot', srcs: ['shot.png'], width: 6, height: 50},
