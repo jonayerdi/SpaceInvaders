@@ -59,7 +59,8 @@ class SpaceInvaders {
         this.keydownFunction = (evt) => this.onKeydown(evt);
         this.eventsrc.addEventListener('focus', ()=>{this.enable()});
         this.eventsrc.addEventListener('blur', ()=>{this.disable()});
-        this.context.scale(width/this.width, height/this.height)
+        this.context.scale(width/this.width, height/this.height);
+        this.bestscore = this.getBestScore();
     }
     load(assetsRoot=this.assetsRoot) {
         return new Promise((resolve, reject) => {
@@ -95,6 +96,16 @@ class SpaceInvaders {
                 .catch((reason) => reject(reason));
             }
         });
+    }
+    saveBestScore(score) {
+        if(this.bestscore < score) {
+            this.bestscore = score;
+            // TODO
+        }
+    }
+    getBestScore() {
+        // TODO
+        return 0;
     }
     initialInvaders() {
         const columns = 8;
@@ -313,11 +324,17 @@ class SpaceInvaders {
             case 0: // Playing
                 this.nextFrame();
                 this.renderGame();
+                this.renderHUD();
                 break;
             case 1: // Paused
                 this.renderPause();
                 break;
             case 2: // Game Over
+                this.saveBestScore(this.player.score);
+                this.renderGame();
+                this.renderHUD();
+                this.state = 3;
+            case 3: // Game Over Screen
                 this.renderGameOver();
                 break;
             case undefined: // Error or something
@@ -326,6 +343,37 @@ class SpaceInvaders {
                 console.error(`Game in invalid state: ${this.state}`);
                 this.state = undefined;
                 break;
+        }
+    }
+    padScore(s) {
+        let score = '' + s;
+        let pad = '000000000000';
+        if(score.length > pad.length) {
+            score = score.substr(score.length - pad.length);
+        } else {
+            score = pad.substr(0, pad.length - score.length) + score;
+        }
+        return score;
+    }
+    renderHUD() {
+        // Score
+        {
+            this.context.font = '32px Arial';
+            this.context.fillStyle = 'white';
+            this.context.fillText('SCORE:', 20, 40);
+            this.context.fillText(this.padScore(this.player.score), 150, 40);
+            this.context.fillStyle = 'gray';
+            this.context.fillText('BEST:', 20, 80);
+            this.context.fillText(this.padScore(this.bestscore), 150, 80);
+        }
+        // Lives
+        {
+            this.context.font = '40px Arial';
+            this.context.fillStyle = 'white';
+            this.context.fillText('LIVES:', 600, 50);
+            for(let i = 0; i < Math.min(this.player.lives, 3); i++) {
+                this.context.drawImage(this.assets.get('player').imgs[0], 740 + 72*i, 20, 63, 28);
+            }
         }
     }
     renderPause() {
@@ -374,10 +422,14 @@ class SpaceInvaders {
         const pausex = 240;
         const pausey = this.height/2;
         this.context.font = '90px Arial';
-        this.context.fillStyle = 'black';
+        this.context.fillStyle = 'red';
         this.context.fillText(text, pausex - 5, pausey - 5);
+        this.context.fillText(text, pausex - 5, pausey + 1);
+        this.context.fillText(text, pausex - 5, pausey + 3);
         this.context.fillText(text, pausex - 5, pausey + 5);
         this.context.fillText(text, pausex + 5, pausey - 5);
+        this.context.fillText(text, pausex + 5, pausey + 1);
+        this.context.fillText(text, pausex + 5, pausey + 3);
         this.context.fillText(text, pausex + 5, pausey + 5);
         this.context.fillStyle = 'white';
         this.context.fillText(text, pausex, pausey);
@@ -416,7 +468,7 @@ class SpaceInvaders {
                         this.state = 1;
                     } else if(this.state === 1) {
                         this.state = 0;
-                    } else if(this.state === 2) {
+                    } else if(this.state === 3) {
                         this.init();
                         this.state = 0;
                     }
