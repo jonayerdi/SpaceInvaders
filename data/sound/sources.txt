@@ -1,0 +1,5 @@
+gameover.mp3: https://freesound.org/people/ScreamStudio/sounds/412168/
+invader_death.mp3: https://freesound.org/people/Rocotilos/sounds/275733/
+laser.mp3: https://freesound.org/people/jordivburgel/sounds/217367/
+pause.mp3: https://freesound.org/people/JapanYoshiTheGamer/sounds/361263/
+ufo_death.mp3: https://freesound.org/people/Mrthenoronha/sounds/399904/
